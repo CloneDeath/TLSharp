@@ -73,11 +73,11 @@ namespace TLSharp.Core
                 Query = config,
                 SystemVersion = "Win 10.0"
             };
-            var invokewithLayer = new TLRequestInvokeWithLayer() { Layer = 66, Query = request };
-            await _sender.Send(invokewithLayer);
-            await _sender.Receive(invokewithLayer);
+            var invokeWithLayer = new TLRequestInvokeWithLayer() { Layer = 66, Query = request };
+            await _sender.Send(invokeWithLayer);
+            await _sender.Receive(invokeWithLayer);
 
-            dcOptions = ((TLConfig)invokewithLayer.Response).DcOptions.ToList();
+            dcOptions = ((TLConfig)invokeWithLayer.Response).DcOptions.ToList();
         }
 
         private async Task ReconnectToDcAsync(int dcId)
@@ -86,7 +86,7 @@ namespace TLSharp.Core
                 throw new InvalidOperationException($"Can't reconnect. Establish initial connection first.");
 
             TLExportedAuthorization exported = null;
-            if (_session.TLUser != null)
+            if (IsUserAuthorized())
             {
                 TLRequestExportAuthorization exportAuthorization = new TLRequestExportAuthorization() { DcId = dcId };
                 exported = await SendRequestAsync<TLExportedAuthorization>(exportAuthorization);
@@ -100,7 +100,7 @@ namespace TLSharp.Core
 
             await ConnectAsync(true);
 
-            if (_session.TLUser != null)
+            if (IsUserAuthorized())
             {
                 TLRequestImportAuthorization importAuthorization = new TLRequestImportAuthorization() { Id = exported.Id, Bytes = exported.Bytes };
                 var imported = await SendRequestAsync<TLAuthorization>(importAuthorization);
