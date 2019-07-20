@@ -121,6 +121,9 @@ namespace TLSharp.Core
                     await _sender.Receive(request);
                     completed = true;
                 }
+                catch (FileMigrationException ex) {
+                    return MakeRequestAtDataCenterWithTemporarySubClient(request, ex.DC);
+                }
                 catch(DataCenterMigrationException e)
                 {
                     if (_session.DataCenter.DataCenterId.HasValue &&
@@ -134,6 +137,10 @@ namespace TLSharp.Core
                     request.ConfirmReceived = false;
                 }
             }
+        }
+
+        private async Task MakeRequestAtDataCenterWithTemporarySubClient(TLMethod request, int dataCenter) {
+            var subClient = new TelegramClient(_apiId, _apiHash, new FakeSessionStore(), "session", null);
         }
 
         public bool IsUserAuthorized()
