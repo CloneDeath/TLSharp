@@ -122,7 +122,8 @@ namespace TLSharp.Core
                     completed = true;
                 }
                 catch (FileMigrationException ex) {
-                    return MakeRequestAtDataCenterWithTemporarySubClient(request, ex.DC);
+                    await MakeRequestAtDataCenterWithTemporarySubClient(request, ex.DC);
+                    completed = true;
                 }
                 catch(DataCenterMigrationException e)
                 {
@@ -140,7 +141,18 @@ namespace TLSharp.Core
         }
 
         private async Task MakeRequestAtDataCenterWithTemporarySubClient(TLMethod request, int dataCenter) {
-            var subClient = new TelegramClient(_apiId, _apiHash, new FakeSessionStore(), "session", null);
+            var fakeStore = new FakeSessionStore();
+            var subClient = new TelegramClient(_apiId, _apiHash, fakeStore, "session", null, _useIpV6DataCenters) {
+                _session = Session.FromBytes(_session.ToBytes(), fakeStore, "session"),
+                _transport = new TcpTransport(_session.DataCenter.Address, _session.DataCenter.Port, _handler)
+            };
+            await subClient.ConnectAsync();
+
+            await subClient.ReconnectToDcAsync(dataCenter);
+            request.ConfirmReceived = false;
+            await subClient.RequestWithDcMigration(request);
+            _session.LastMessageId = subClient._session.LastMessageId;
+            _session.Sequence = subClient._session.Sequence;
         }
 
         public bool IsUserAuthorized()
@@ -150,7 +162,7 @@ namespace TLSharp.Core
 
         public async Task<bool> IsPhoneRegisteredAsync(string phoneNumber)
         {
-            if (String.IsNullOrWhiteSpace(phoneNumber))
+            if (string.IsNullOrWhiteSpace(phoneNumber))
                 throw new ArgumentNullException(nameof(phoneNumber));
 
             var authCheckPhoneRequest = new TLRequestCheckPhone() { PhoneNumber = phoneNumber };
@@ -189,7 +201,7 @@ namespace TLSharp.Core
 
             OnUserAuthenticated(((TLUser)request.Response.User));
 
-            return ((TLUser)request.Response.User);
+            return (TLUser)request.Response.User;
         }
 
         public async Task<TLPassword> GetPasswordSetting()
@@ -198,7 +210,7 @@ namespace TLSharp.Core
 
             await RequestWithDcMigration(request);
 
-            return ((TLPassword)request.Response);
+            return (TLPassword)request.Response;
         }
 
         public async Task<TLUser> MakeAuthWithPasswordAsync(TLPassword password, string password_str)
@@ -229,12 +241,11 @@ namespace TLSharp.Core
 
             return ((TLUser)request.Response.User);
         }
+
         public async Task<T> SendRequestAsync<T>(TLMethod methodToExecute)
         {
             await RequestWithDcMigration(methodToExecute);
-
             var result = methodToExecute.GetType().GetProperty("Response").GetValue(methodToExecute);
-
             return (T)result;
         }
 
