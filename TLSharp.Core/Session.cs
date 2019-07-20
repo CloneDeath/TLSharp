@@ -121,13 +121,13 @@ namespace TLSharp.Core
                 var serverAddress = Serializers.String.read(reader);
                 var port = reader.ReadInt32();
 
-                var isAuthExsist = reader.ReadInt32() == 1;
+                var authExists = reader.ReadInt32() == 1;
                 int sessionExpires = 0;
-                TLUser TLUser = null;
-                if (isAuthExsist)
+                TLUser user = null;
+                if (authExists)
                 {
                     sessionExpires = reader.ReadInt32();
-                    TLUser = (TLUser)ObjectUtils.DeserializeObject(reader);
+                    user = (TLUser)ObjectUtils.DeserializeObject(reader);
                 }
 
                 var authData = Serializers.Bytes.read(reader);
@@ -142,7 +142,7 @@ namespace TLSharp.Core
                     LastMessageId = lastMessageId,
                     TimeOffset = timeOffset,
                     SessionExpires = sessionExpires,
-                    TLUser = TLUser,
+                    TLUser = user,
                     SessionUserId = sessionUserId,
                     DataCenter = defaultDataCenter,
                 };
