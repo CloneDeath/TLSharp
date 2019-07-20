@@ -12,7 +12,6 @@ using TeleSharp.TL.Help;
 using TeleSharp.TL.Messages;
 using TeleSharp.TL.Upload;
 using TLSharp.Core.Auth;
-using TLSharp.Core.MTProto.Crypto;
 using TLSharp.Core.Network;
 using TLSharp.Core.Utils;
 using TLAuthorization = TeleSharp.TL.Auth.TLAuthorization;
@@ -315,10 +314,8 @@ namespace TLSharp.Core
             });
         }
 
-        public async Task<TLFile> GetFile(TLAbsInputFileLocation location, int filePartSize, int offset = 0)
-        {
-            TLFile result = null;
-            result = await SendRequestAsync<TLFile>(new TLRequestGetFile()
+        public async Task<TLFile> GetFile(TLAbsInputFileLocation location, int filePartSize, int offset = 0) {
+            var result = await SendRequestAsync<TLFile>(new TLRequestGetFile()
             {
                 Location = location,
                 Limit = filePartSize,
@@ -367,9 +364,9 @@ namespace TLSharp.Core
             return await SendRequestAsync<TLFound>(r);
         }
 
-        private void OnUserAuthenticated(TLUser TLUser)
+        private void OnUserAuthenticated(TLUser user)
         {
-            _session.TLUser = TLUser;
+            _session.TLUser = user;
             _session.SessionExpires = int.MaxValue;
 
             _session.Save();
