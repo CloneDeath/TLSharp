@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Ionic.Zlib;
+using TeleSharp.TL;
 using TLSharp.Core.MTProto;
 using TLSharp.Core.MTProto.Crypto;
 using TLSharp.Core.Requests;
@@ -34,7 +35,7 @@ namespace TLSharp.Core.Network
             return confirmed ? _session.Sequence++ * 2 + 1 : _session.Sequence * 2;
         }
 
-        public async Task Send(TeleSharp.TL.TLMethod request)
+        public async Task Send(TLMethod request)
         {
             // TODO: refactor
             if (needConfirmation.Any())
@@ -60,7 +61,7 @@ namespace TLSharp.Core.Network
             _session.Save();
         }
 
-        public async Task Send(byte[] packet, TeleSharp.TL.TLMethod request)
+        public async Task Send(byte[] packet, TLMethod request)
         {
             request.MessageId = _session.GetNewMessageId();
 
@@ -572,7 +573,7 @@ namespace TLSharp.Core.Network
         {
         }
     }
-    
+
     internal class NetworkMigrationException : DataCenterMigrationException
     {
         internal NetworkMigrationException(int dc)
