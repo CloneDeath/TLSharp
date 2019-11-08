@@ -134,7 +134,7 @@ namespace TeleSharp.Generator
                     
                     #region Fields
                     var fields = GetFields(c.Params)
-                        + $"        public {CheckForFlagBase(c.type, GetTypeName(c.type))} Response" + "{ get; set;}" + Environment.NewLine;
+                        + $"        public {CheckForFlagBase(c.type, GetTypeName(c.type))} Response " + "{ get; set; }" + Environment.NewLine;
                     temp = temp.Replace("/* PARAMS */", fields);
                     #endregion
                     
@@ -193,7 +193,7 @@ namespace TeleSharp.Generator
             string fields = "";
             foreach (var tmp in parameters)
             {
-                fields += $"        public {CheckForFlagBase(tmp.type, GetTypeName(tmp.type))} {CheckForKeywordAndPascalCase(tmp.name)} " + "{get;set;}" + Environment.NewLine;
+                fields += $"        public {CheckForFlagBase(tmp.type, GetTypeName(tmp.type))} {CheckForKeywordAndPascalCase(tmp.name)} " + "{ get; set; }" + Environment.NewLine;
             }
             return fields;
         }
@@ -353,7 +353,7 @@ namespace TeleSharp.Generator
                 case "long":
                     return flag ? $"bw.Write({CheckForKeywordAndPascalCase(p.name)}.Value);" : $"bw.Write({CheckForKeywordAndPascalCase(p.name)});";
                 case "string":
-                    return $"StringUtil.Serialize({CheckForKeywordAndPascalCase(p.name)},bw);";
+                    return $"StringUtil.Serialize({CheckForKeywordAndPascalCase(p.name)}, bw);";
                 case "bool":
                     return flag ? $"BoolUtil.Serialize({CheckForKeywordAndPascalCase(p.name)}.Value,bw);" : $"BoolUtil.Serialize({CheckForKeywordAndPascalCase(p.name)},bw);";
                 case "true":
@@ -364,7 +364,7 @@ namespace TeleSharp.Generator
                     return flag ? $"bw.Write({CheckForKeywordAndPascalCase(p.name)}.Value);" : $"bw.Write({CheckForKeywordAndPascalCase(p.name)});";
                 default:
                     if (!IsFlagBase(p.type))
-                        return $"ObjectUtils.SerializeObject({CheckForKeywordAndPascalCase(p.name)},bw);";
+                        return $"ObjectUtils.SerializeObject({CheckForKeywordAndPascalCase(p.name)}, bw);";
                     else
                     {
                         if (IsTrueFlag(p.type))

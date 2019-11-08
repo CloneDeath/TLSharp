@@ -18,22 +18,22 @@ namespace /* NAMESPACE */
             }
         }
 
-        /* PARAMS */
+/* PARAMS */
 
         public void ComputeFlags()
         {
-            /* COMPUTE */
+/* COMPUTE */
         }
 
         public override void DeserializeBody(BinaryReader br)
         {
-            /* DESERIALIZE */
+/* DESERIALIZE */
         }
 
         public override void SerializeBody(BinaryWriter bw)
         {
             bw.Write(Constructor);
-            /* SERIALIZE */
+/* SERIALIZE */
         }
     }
 }
