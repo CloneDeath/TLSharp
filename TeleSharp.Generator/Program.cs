@@ -11,9 +11,9 @@ namespace TeleSharp.Generator
         static List<String> keywords = new List<string>(new string[] { "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "in", "int", "interface", "internal", "is", "lock", "long", "namespace", "new", "null", "object", "operator", "out", "out", "override", "params", "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void", "volatile", "while", "add", "alias", "ascending", "async", "await", "descending", "dynamic", "from", "get", "global", "group", "into", "join", "let", "orderby", "partial", "partial", "remove", "select", "set", "value", "var", "where", "where", "yield" });
         static List<String> interfacesList = new List<string>();
         static List<String> classesList = new List<string>();
+        
         static void Main(string[] args)
         {
-
             string AbsStyle = File.ReadAllText("ConstructorAbs.tmp");
             string NormalStyle = File.ReadAllText("Constructor.tmp");
             string MethodStyle = File.ReadAllText("Method.tmp");
@@ -68,14 +68,11 @@ namespace TeleSharp.Generator
                     temp = temp.Replace("/*Constructor*/", c.id.ToString());
                     temp = temp.Replace("/* NAME */", GetNameofClass(c.predicate, false));
                     #endregion
+                    
                     #region Fields
-                    string fields = "";
-                    foreach (var tmp in c.Params)
-                    {
-                        fields += $"     public {CheckForFlagBase(tmp.type, GetTypeName(tmp.type))} {CheckForKeywordAndPascalCase(tmp.name)} " + "{get;set;}" + Environment.NewLine;
-                    }
-                    temp = temp.Replace("/* PARAMS */", fields);
+                    temp = temp.Replace("/* PARAMS */", GetFields(c.Params));
                     #endregion
+                    
                     #region ComputeFlagFunc
                     if (!c.Params.Any(x => x.name == "Flags")) temp = temp.Replace("/* COMPUTE */", "");
                     else
@@ -134,15 +131,13 @@ namespace TeleSharp.Generator
                     temp = temp.Replace("/*Constructor*/", c.id.ToString());
                     temp = temp.Replace("/* NAME */", GetNameofClass(c.method, false, true));
                     #endregion
+                    
                     #region Fields
-                    string fields = "";
-                    foreach (var tmp in c.Params)
-                    {
-                        fields += $"        public {CheckForFlagBase(tmp.type, GetTypeName(tmp.type))} {CheckForKeywordAndPascalCase(tmp.name)} " + "{get;set;}" + Environment.NewLine;
-                    }
-                    fields += $"        public {CheckForFlagBase(c.type, GetTypeName(c.type))} Response" + "{ get; set;}" + Environment.NewLine;
+                    var fields = GetFields(c.Params)
+                        + $"        public {CheckForFlagBase(c.type, GetTypeName(c.type))} Response" + "{ get; set;}" + Environment.NewLine;
                     temp = temp.Replace("/* PARAMS */", fields);
                     #endregion
+                    
                     #region ComputeFlagFunc
                     if (!c.Params.Any(x => x.name == "Flags")) temp = temp.Replace("/* COMPUTE */", "");
                     else
@@ -193,6 +188,16 @@ namespace TeleSharp.Generator
                 }
             }
         }
+
+        public static string GetFields(List<Param> parameters) {
+            string fields = "";
+            foreach (var tmp in parameters)
+            {
+                fields += $"        public {CheckForFlagBase(tmp.type, GetTypeName(tmp.type))} {CheckForKeywordAndPascalCase(tmp.name)} " + "{get;set;}" + Environment.NewLine;
+            }
+            return fields;
+        }
+        
         public static string FormatName(string input)
         {
             if (String.IsNullOrEmpty(input))
