@@ -11,7 +11,9 @@ namespace TeleSharp.Generator
         static List<String> keywords = new List<string>(new string[] { "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "in", "int", "interface", "internal", "is", "lock", "long", "namespace", "new", "null", "object", "operator", "out", "out", "override", "params", "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void", "volatile", "while", "add", "alias", "ascending", "async", "await", "descending", "dynamic", "from", "get", "global", "group", "into", "join", "let", "orderby", "partial", "partial", "remove", "select", "set", "value", "var", "where", "where", "yield" });
         static List<String> interfacesList = new List<string>();
         static List<String> classesList = new List<string>();
-        
+
+        public const char NewLine = '\n';
+
         static void Main(string[] args)
         {
             string AbsStyle = File.ReadAllText("ConstructorAbs.tmp");
@@ -69,16 +71,16 @@ namespace TeleSharp.Generator
                 if (!c.Params.Any(x => x.name == "Flags")) temp = temp.Replace("/* COMPUTE */", "");
                 else
                 {
-                    var compute = "Flags = 0;" + Environment.NewLine;
+                    var compute = "Flags = 0;" + NewLine;
                     foreach (var param in c.Params.Where(x => IsFlagBase(x.type)))
                     {
                         if (IsTrueFlag(param.type))
                         {
-                            compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + Environment.NewLine;
+                            compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + NewLine;
                         }
                         else
                         {
-                            compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} != null ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + Environment.NewLine;
+                            compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} != null ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + NewLine;
                         }
                     }
                     temp = temp.Replace("/* COMPUTE */", compute);
@@ -113,24 +115,24 @@ namespace TeleSharp.Generator
                 #region Fields
                 var fields = GetFields(c.Params)
                              + $"        public {CheckForFlagBase(c.type, GetTypeName(c.type))} Response " +
-                             "{ get; set; }" + Environment.NewLine;
+                             "{ get; set; }" + NewLine;
                 temp = temp.Replace("/* PARAMS */", fields);
                 #endregion
 
                 #region ComputeFlagFunc
                 if (!c.Params.Any(x => x.name == "Flags")) temp = temp.Replace("/* COMPUTE */", "");
                 else {
-                    var compute = "Flags = 0;" + Environment.NewLine;
+                    var compute = "Flags = 0;" + NewLine;
                     foreach (var param in c.Params.Where(x => IsFlagBase(x.type))) {
                         if (IsTrueFlag(param.type)) {
                             compute +=
                                 $"Flags = {CheckForKeywordAndPascalCase(param.name)} ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" +
-                                Environment.NewLine;
+                                NewLine;
                         }
                         else {
                             compute +=
                                 $"Flags = {CheckForKeywordAndPascalCase(param.name)} != null ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" +
-                                Environment.NewLine;
+                                NewLine;
                         }
                     }
 
@@ -149,7 +151,7 @@ namespace TeleSharp.Generator
                 #region DeSerializeRespFunc
                 var deserializeResp = "";
                 Param p2 = new Param() {name = "Response", type = c.type};
-                deserializeResp += GetDeserializeCode(p2) + Environment.NewLine;
+                deserializeResp += GetDeserializeCode(p2) + NewLine;
                 temp = temp.Replace("/* DESERIALIZEResp */", deserializeResp);
                 #endregion
 
@@ -163,7 +165,7 @@ namespace TeleSharp.Generator
             {
                 fields += GetIndentationForLevel(2) 
                           + $"public {CheckForFlagBase(tmp.type, GetTypeName(tmp.type))} {CheckForKeywordAndPascalCase(tmp.name)} " + "{ get; set; }" 
-                          + Environment.NewLine;
+                          + NewLine;
             }
             return fields;
         }
@@ -325,13 +327,13 @@ namespace TeleSharp.Generator
             var serialize = "";
             var indentation = GetIndentationForLevel(3);
             if (parameters.Any(x => x.name == "Flags")) {
-                serialize += indentation + "ComputeFlags();" + Environment.NewLine;
-                serialize += indentation + "bw.Write(Flags);" + Environment.NewLine;
+                serialize += indentation + "ComputeFlags();" + NewLine;
+                serialize += indentation + "bw.Write(Flags);" + NewLine;
             }
 
             foreach (var p in parameters.Where(x => x.name != "Flags"))
             {
-                serialize += indentation + GetSerializeCode(p) + Environment.NewLine;
+                serialize += indentation + GetSerializeCode(p) + NewLine;
             }
             return serialize;
         }
@@ -365,7 +367,7 @@ namespace TeleSharp.Generator
                         else
                         {
                             Param p2 = new Param() { name = p.name, type = p.type.Split('?')[1] };
-                            return $"if ((Flags & {GetBitMask(p.type).ToString()}) != 0)" + Environment.NewLine +
+                            return $"if ((Flags & {GetBitMask(p.type).ToString()}) != 0)" + NewLine +
                                 GetSerializeCode(p2, true);
                         }
                     }
@@ -376,7 +378,7 @@ namespace TeleSharp.Generator
             var deserialize = "";
             foreach (var p in parameters)
             {
-                deserialize += GetIndentationForLevel(3) + GetDeserializeCode(p) + Environment.NewLine;
+                deserialize += GetIndentationForLevel(3) + GetDeserializeCode(p) + NewLine;
             }
             return deserialize;
         }
@@ -415,10 +417,10 @@ namespace TeleSharp.Generator
                         else
                         {
                             Param p2 = new Param() { name = p.name, type = p.type.Split('?')[1] };
-                            return $"if ((Flags & {GetBitMask(p.type).ToString()}) != 0)" + Environment.NewLine +
-                                GetDeserializeCode(p2) + Environment.NewLine +
-                            "else" + Environment.NewLine +
-                                $"{CheckForKeywordAndPascalCase(p.name)} = null;" + Environment.NewLine;
+                            return $"if ((Flags & {GetBitMask(p.type).ToString()}) != 0)" + NewLine +
+                                GetDeserializeCode(p2) + NewLine +
+                            "else" + NewLine +
+                                $"{CheckForKeywordAndPascalCase(p.name)} = null;" + NewLine;
                         }
                     }
             }
