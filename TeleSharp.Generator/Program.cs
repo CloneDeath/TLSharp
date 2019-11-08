@@ -214,6 +214,7 @@ namespace TeleSharp.Generator
             }
             return input.First().ToString().ToUpper() + input.Substring(1);
         }
+        
         public static string CheckForKeywordAndPascalCase(string name)
         {
             name = name.Replace("_", " ");
@@ -223,6 +224,7 @@ namespace TeleSharp.Generator
             if (keywords.Contains(name)) return "@" + name;
             return name;
         }
+        
         public static string GetNameofClass(string type, bool isinterface = false, bool ismethod = false)
         {
             if (!ismethod)
@@ -244,18 +246,22 @@ namespace TeleSharp.Generator
                     return "TLRequest" + FormatName(type);
             }
         }
+        
         private static bool IsFlagBase(string type)
         {
             return type.IndexOf("?") != -1;
         }
+        
         private static int GetBitMask(string type)
         {
             return (int)Math.Pow((double)2, (double)int.Parse(type.Split('?')[0].Split('.')[1]));
         }
+        
         private static bool IsTrueFlag(string type)
         {
             return type.Split('?')[1] == "true";
         }
+        
         public static string GetNameSpace(string type)
         {
             if (type.IndexOf('.') != -1)
@@ -263,6 +269,7 @@ namespace TeleSharp.Generator
             else
                 return "TeleSharp.TL";
         }
+        
         public static string CheckForFlagBase(string type, string result)
         {
             if (type.IndexOf('?') == -1)
@@ -275,6 +282,7 @@ namespace TeleSharp.Generator
                 else return result;
             }
         }
+        
         public static string GetTypeName(string type)
         {
             switch (type.ToLower())
@@ -331,9 +339,8 @@ namespace TeleSharp.Generator
             {
                 return GetTypeName(type.Split('?')[1]);
             }
-
-
         }
+        
         public static string LookTypeInLists(string src)
         {
             if (interfacesList.Any(x => x.ToLower() == src.ToLower()))
@@ -343,6 +350,7 @@ namespace TeleSharp.Generator
             else
                 return src;
         }
+        
         public static string WriteWriteCode(Param p, bool flag = false)
         {
             switch (p.type.ToLower())
@@ -378,6 +386,7 @@ namespace TeleSharp.Generator
                     }
             }
         }
+        
         public static string WriteReadCode(Param p)
         {
             switch (p.type.ToLower())
@@ -420,6 +429,7 @@ namespace TeleSharp.Generator
                     }
             }
         }
+        
         public static FileStream MakeFile(string path)
         {
             if (!Directory.Exists(Path.GetDirectoryName(path)))
@@ -429,5 +439,4 @@ namespace TeleSharp.Generator
             return File.OpenWrite(path);
         }
     }
-
 }
