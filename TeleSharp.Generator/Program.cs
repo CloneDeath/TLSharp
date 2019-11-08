@@ -34,18 +34,12 @@ namespace TeleSharp.Generator
                 if (list.Count() > 1)
                 {
                     string path = (GetNameSpace(c.type).Replace("TeleSharp.TL", "TL\\").Replace(".", "") + "\\" + GetNameofClass(c.type, true) + ".cs").Replace("\\\\", "\\");
-                    FileStream classFile = MakeFile(path);
-                    using (StreamWriter writer = new StreamWriter(classFile))
-                    {
-                        string nspace = (GetNameSpace(c.type).Replace("TeleSharp.TL", "TL\\").Replace(".", "")).Replace("\\\\", "\\").Replace("\\", ".");
-                        if (nspace.EndsWith("."))
-                            nspace = nspace.Remove(nspace.Length - 1, 1);
-                        string temp = AbsStyle.Replace("/* NAMESPACE */", "TeleSharp." + nspace);
-                        temp = temp.Replace("/* NAME */", GetNameofClass(c.type, true));
-                        writer.Write(temp);
-                        writer.Close();
-                        classFile.Close();
-                    }
+                    string nspace = (GetNameSpace(c.type).Replace("TeleSharp.TL", "TL\\").Replace(".", "")).Replace("\\\\", "\\").Replace("\\", ".");
+                    if (nspace.EndsWith("."))
+                        nspace = nspace.Remove(nspace.Length - 1, 1);
+                    string temp = AbsStyle.Replace("/* NAMESPACE */", "TeleSharp." + nspace);
+                    temp = temp.Replace("/* NAME */", GetNameofClass(c.type, true));
+                    SetFileContents(path, temp);
                 }
                 else
                 {
@@ -56,136 +50,124 @@ namespace TeleSharp.Generator
             foreach (var c in schema.constructors)
             {
                 string path = (GetNameSpace(c.predicate).Replace("TeleSharp.TL", "TL\\").Replace(".", "") + "\\" + GetNameofClass(c.predicate, false) + ".cs").Replace("\\\\", "\\");
-                FileStream classFile = MakeFile(path);
-                using (StreamWriter writer = new StreamWriter(classFile))
+                
+                #region About Class
+                string nspace = (GetNameSpace(c.predicate).Replace("TeleSharp.TL", "TL\\").Replace(".", "")).Replace("\\\\", "\\").Replace("\\", ".");
+                if (nspace.EndsWith("."))
+                    nspace = nspace.Remove(nspace.Length - 1, 1);
+                string temp = NormalStyle.Replace("/* NAMESPACE */", "TeleSharp." + nspace);
+                temp = (c.type == "himself") ? temp.Replace("/* PARENT */", "TLObject") : temp.Replace("/* PARENT */", GetNameofClass(c.type, true));
+                temp = temp.Replace("/*Constructor*/", c.id.ToString());
+                temp = temp.Replace("/* NAME */", GetNameofClass(c.predicate, false));
+                #endregion
+                
+                #region Fields
+                temp = temp.Replace("/* PARAMS */", GetFields(c.Params));
+                #endregion
+                
+                #region ComputeFlagFunc
+                if (!c.Params.Any(x => x.name == "Flags")) temp = temp.Replace("/* COMPUTE */", "");
+                else
                 {
-                    #region About Class
-                    string nspace = (GetNameSpace(c.predicate).Replace("TeleSharp.TL", "TL\\").Replace(".", "")).Replace("\\\\", "\\").Replace("\\", ".");
-                    if (nspace.EndsWith("."))
-                        nspace = nspace.Remove(nspace.Length - 1, 1);
-                    string temp = NormalStyle.Replace("/* NAMESPACE */", "TeleSharp." + nspace);
-                    temp = (c.type == "himself") ? temp.Replace("/* PARENT */", "TLObject") : temp.Replace("/* PARENT */", GetNameofClass(c.type, true));
-                    temp = temp.Replace("/*Constructor*/", c.id.ToString());
-                    temp = temp.Replace("/* NAME */", GetNameofClass(c.predicate, false));
-                    #endregion
-                    
-                    #region Fields
-                    temp = temp.Replace("/* PARAMS */", GetFields(c.Params));
-                    #endregion
-                    
-                    #region ComputeFlagFunc
-                    if (!c.Params.Any(x => x.name == "Flags")) temp = temp.Replace("/* COMPUTE */", "");
-                    else
+                    var compute = "Flags = 0;" + Environment.NewLine;
+                    foreach (var param in c.Params.Where(x => IsFlagBase(x.type)))
                     {
-                        var compute = "Flags = 0;" + Environment.NewLine;
-                        foreach (var param in c.Params.Where(x => IsFlagBase(x.type)))
+                        if (IsTrueFlag(param.type))
                         {
-                            if (IsTrueFlag(param.type))
-                            {
-                                compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + Environment.NewLine;
-                            }
-                            else
-                            {
-                                compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} != null ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + Environment.NewLine;
-                            }
+                            compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + Environment.NewLine;
                         }
-                        temp = temp.Replace("/* COMPUTE */", compute);
+                        else
+                        {
+                            compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} != null ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + Environment.NewLine;
+                        }
                     }
-                    #endregion
-                    #region SerializeFunc
-                    var serialize = "";
-
-                    if (c.Params.Any(x => x.name == "Flags")) serialize += "ComputeFlags();" + Environment.NewLine + "bw.Write(Flags);" + Environment.NewLine;
-                    foreach (var p in c.Params.Where(x => x.name != "Flags"))
-                    {
-                        serialize += WriteWriteCode(p) + Environment.NewLine;
-                    }
-                    temp = temp.Replace("/* SERIALIZE */", serialize);
-                    #endregion
-                    #region DeSerializeFunc
-                    var deserialize = "";
-
-                    foreach (var p in c.Params)
-                    {
-                        deserialize += WriteReadCode(p) + Environment.NewLine;
-                    }
-                    temp = temp.Replace("/* DESERIALIZE */", deserialize);
-                    #endregion
-                    writer.Write(temp);
-                    writer.Close();
-                    classFile.Close();
+                    temp = temp.Replace("/* COMPUTE */", compute);
                 }
+                #endregion
+                #region SerializeFunc
+                var serialize = "";
+
+                if (c.Params.Any(x => x.name == "Flags")) serialize += "ComputeFlags();" + Environment.NewLine + "bw.Write(Flags);" + Environment.NewLine;
+                foreach (var p in c.Params.Where(x => x.name != "Flags"))
+                {
+                    serialize += WriteWriteCode(p) + Environment.NewLine;
+                }
+                temp = temp.Replace("/* SERIALIZE */", serialize);
+                #endregion
+                
+                #region DeSerializeFunc
+                temp = temp.Replace("/* DESERIALIZE */", GetDeserializeCode(c.Params));
+                #endregion
+                    
+                SetFileContents(path, temp);
             }
             foreach (var c in schema.methods)
             {
                 string path = (GetNameSpace(c.method).Replace("TeleSharp.TL", "TL\\").Replace(".", "") + "\\" + GetNameofClass(c.method, false, true) + ".cs").Replace("\\\\", "\\");
-                FileStream classFile = MakeFile(path);
-                using (StreamWriter writer = new StreamWriter(classFile))
-                {
-                    #region About Class
-                    string nspace = (GetNameSpace(c.method).Replace("TeleSharp.TL", "TL\\").Replace(".", "")).Replace("\\\\", "\\").Replace("\\", ".");
-                    if (nspace.EndsWith("."))
-                        nspace = nspace.Remove(nspace.Length - 1, 1);
-                    string temp = MethodStyle.Replace("/* NAMESPACE */", "TeleSharp." + nspace);
-                    temp = temp.Replace("/* PARENT */", "TLMethod");
-                    temp = temp.Replace("/*Constructor*/", c.id.ToString());
-                    temp = temp.Replace("/* NAME */", GetNameofClass(c.method, false, true));
-                    #endregion
-                    
-                    #region Fields
-                    var fields = GetFields(c.Params)
-                        + $"        public {CheckForFlagBase(c.type, GetTypeName(c.type))} Response " + "{ get; set; }" + Environment.NewLine;
-                    temp = temp.Replace("/* PARAMS */", fields);
-                    #endregion
-                    
-                    #region ComputeFlagFunc
-                    if (!c.Params.Any(x => x.name == "Flags")) temp = temp.Replace("/* COMPUTE */", "");
-                    else
-                    {
-                        var compute = "Flags = 0;" + Environment.NewLine;
-                        foreach (var param in c.Params.Where(x => IsFlagBase(x.type)))
-                        {
-                            if (IsTrueFlag(param.type))
-                            {
-                                compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + Environment.NewLine;
-                            }
-                            else
-                            {
-                                compute += $"Flags = {CheckForKeywordAndPascalCase(param.name)} != null ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" + Environment.NewLine;
-                            }
+
+                #region About Class
+                string nspace = (GetNameSpace(c.method).Replace("TeleSharp.TL", "TL\\").Replace(".", ""))
+                    .Replace("\\\\", "\\").Replace("\\", ".");
+                if (nspace.EndsWith("."))
+                    nspace = nspace.Remove(nspace.Length - 1, 1);
+                string temp = MethodStyle.Replace("/* NAMESPACE */", "TeleSharp." + nspace);
+                temp = temp.Replace("/* PARENT */", "TLMethod");
+                temp = temp.Replace("/*Constructor*/", c.id.ToString());
+                temp = temp.Replace("/* NAME */", GetNameofClass(c.method, false, true));
+                #endregion
+
+                #region Fields
+                var fields = GetFields(c.Params)
+                             + $"        public {CheckForFlagBase(c.type, GetTypeName(c.type))} Response " +
+                             "{ get; set; }" + Environment.NewLine;
+                temp = temp.Replace("/* PARAMS */", fields);
+                #endregion
+
+                #region ComputeFlagFunc
+                if (!c.Params.Any(x => x.name == "Flags")) temp = temp.Replace("/* COMPUTE */", "");
+                else {
+                    var compute = "Flags = 0;" + Environment.NewLine;
+                    foreach (var param in c.Params.Where(x => IsFlagBase(x.type))) {
+                        if (IsTrueFlag(param.type)) {
+                            compute +=
+                                $"Flags = {CheckForKeywordAndPascalCase(param.name)} ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" +
+                                Environment.NewLine;
                         }
-                        temp = temp.Replace("/* COMPUTE */", compute);
+                        else {
+                            compute +=
+                                $"Flags = {CheckForKeywordAndPascalCase(param.name)} != null ? (Flags | {GetBitMask(param.type)}) : (Flags & ~{GetBitMask(param.type)});" +
+                                Environment.NewLine;
+                        }
                     }
-                    #endregion
-                    #region SerializeFunc
-                    var serialize = "";
 
-                    if (c.Params.Any(x => x.name == "Flags")) serialize += "ComputeFlags();" + Environment.NewLine + "bw.Write(Flags);" + Environment.NewLine;
-                    foreach (var p in c.Params.Where(x => x.name != "Flags"))
-                    {
-                        serialize += WriteWriteCode(p) + Environment.NewLine;
-                    }
-                    temp = temp.Replace("/* SERIALIZE */", serialize);
-                    #endregion
-                    #region DeSerializeFunc
-                    var deserialize = "";
-
-                    foreach (var p in c.Params)
-                    {
-                        deserialize += WriteReadCode(p) + Environment.NewLine;
-                    }
-                    temp = temp.Replace("/* DESERIALIZE */", deserialize);
-                    #endregion
-                    #region DeSerializeRespFunc
-                    var deserializeResp = "";
-                    Param p2 = new Param() { name = "Response", type = c.type };
-                    deserializeResp += WriteReadCode(p2) + Environment.NewLine;
-                    temp = temp.Replace("/* DESERIALIZEResp */", deserializeResp);
-                    #endregion
-                    writer.Write(temp);
-                    writer.Close();
-                    classFile.Close();
+                    temp = temp.Replace("/* COMPUTE */", compute);
                 }
+                #endregion
+
+                #region SerializeFunc
+                var serialize = "";
+
+                if (c.Params.Any(x => x.name == "Flags"))
+                    serialize += "ComputeFlags();" + Environment.NewLine + "bw.Write(Flags);" + Environment.NewLine;
+                foreach (var p in c.Params.Where(x => x.name != "Flags")) {
+                    serialize += WriteWriteCode(p) + Environment.NewLine;
+                }
+
+                temp = temp.Replace("/* SERIALIZE */", serialize);
+                #endregion
+
+                #region DeSerializeFunc
+                temp = temp.Replace("/* DESERIALIZE */", GetDeserializeCode(c.Params));
+                #endregion
+
+                #region DeSerializeRespFunc
+                var deserializeResp = "";
+                Param p2 = new Param() {name = "Response", type = c.type};
+                deserializeResp += GetDeserializeCode(p2) + Environment.NewLine;
+                temp = temp.Replace("/* DESERIALIZEResp */", deserializeResp);
+                #endregion
+
+                SetFileContents(path, temp);
             }
         }
 
@@ -386,8 +368,17 @@ namespace TeleSharp.Generator
                     }
             }
         }
+
+        public static string GetDeserializeCode(List<Param> parameters) {
+            var deserialize = "";
+            foreach (var p in parameters)
+            {
+                deserialize += "            " + GetDeserializeCode(p) + Environment.NewLine;
+            }
+            return deserialize;
+        }
         
-        public static string WriteReadCode(Param p)
+        public static string GetDeserializeCode(Param p)
         {
             switch (p.type.ToLower())
             {
@@ -422,7 +413,7 @@ namespace TeleSharp.Generator
                         {
                             Param p2 = new Param() { name = p.name, type = p.type.Split('?')[1] };
                             return $"if ((Flags & {GetBitMask(p.type).ToString()}) != 0)" + Environment.NewLine +
-                                WriteReadCode(p2) + Environment.NewLine +
+                                GetDeserializeCode(p2) + Environment.NewLine +
                             "else" + Environment.NewLine +
                                 $"{CheckForKeywordAndPascalCase(p.name)} = null;" + Environment.NewLine;
                         }
@@ -430,13 +421,11 @@ namespace TeleSharp.Generator
             }
         }
         
-        public static FileStream MakeFile(string path)
-        {
-            if (!Directory.Exists(Path.GetDirectoryName(path)))
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-            if (File.Exists(path))
-                File.Delete(path);
-            return File.OpenWrite(path);
+        public static void SetFileContents(string filepath, string contents) {
+            var directoryName = Path.GetDirectoryName(filepath);
+            if (!Directory.Exists(directoryName) && directoryName != null)
+                Directory.CreateDirectory(directoryName);
+            File.WriteAllText(filepath, contents);
         }
     }
 }
