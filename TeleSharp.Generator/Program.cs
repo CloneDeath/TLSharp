@@ -84,15 +84,9 @@ namespace TeleSharp.Generator
                     temp = temp.Replace("/* COMPUTE */", compute);
                 }
                 #endregion
+                
                 #region SerializeFunc
-                var serialize = "";
-
-                if (c.Params.Any(x => x.name == "Flags")) serialize += "ComputeFlags();" + Environment.NewLine + "bw.Write(Flags);" + Environment.NewLine;
-                foreach (var p in c.Params.Where(x => x.name != "Flags"))
-                {
-                    serialize += WriteWriteCode(p) + Environment.NewLine;
-                }
-                temp = temp.Replace("/* SERIALIZE */", serialize);
+                temp = temp.Replace("/* SERIALIZE */", GetSerializeCode(c.Params));
                 #endregion
                 
                 #region DeSerializeFunc
@@ -145,15 +139,7 @@ namespace TeleSharp.Generator
                 #endregion
 
                 #region SerializeFunc
-                var serialize = "";
-
-                if (c.Params.Any(x => x.name == "Flags"))
-                    serialize += "ComputeFlags();" + Environment.NewLine + "bw.Write(Flags);" + Environment.NewLine;
-                foreach (var p in c.Params.Where(x => x.name != "Flags")) {
-                    serialize += WriteWriteCode(p) + Environment.NewLine;
-                }
-
-                temp = temp.Replace("/* SERIALIZE */", serialize);
+                temp = temp.Replace("/* SERIALIZE */", GetSerializeCode(c.Params));
                 #endregion
 
                 #region DeSerializeFunc
@@ -172,10 +158,12 @@ namespace TeleSharp.Generator
         }
 
         public static string GetFields(List<Param> parameters) {
-            string fields = "";
+            var fields = "";
             foreach (var tmp in parameters)
             {
-                fields += $"        public {CheckForFlagBase(tmp.type, GetTypeName(tmp.type))} {CheckForKeywordAndPascalCase(tmp.name)} " + "{ get; set; }" + Environment.NewLine;
+                fields += GetIndentationForLevel(2) 
+                          + $"public {CheckForFlagBase(tmp.type, GetTypeName(tmp.type))} {CheckForKeywordAndPascalCase(tmp.name)} " + "{ get; set; }" 
+                          + Environment.NewLine;
             }
             return fields;
         }
@@ -332,8 +320,23 @@ namespace TeleSharp.Generator
             else
                 return src;
         }
+
+        public static string GetSerializeCode(List<Param> parameters) {
+            var serialize = "";
+            var indentation = GetIndentationForLevel(3);
+            if (parameters.Any(x => x.name == "Flags")) {
+                serialize += indentation + "ComputeFlags();" + Environment.NewLine;
+                serialize += indentation + "bw.Write(Flags);" + Environment.NewLine;
+            }
+
+            foreach (var p in parameters.Where(x => x.name != "Flags"))
+            {
+                serialize += indentation + GetSerializeCode(p) + Environment.NewLine;
+            }
+            return serialize;
+        }
         
-        public static string WriteWriteCode(Param p, bool flag = false)
+        public static string GetSerializeCode(Param p, bool flag = false)
         {
             switch (p.type.ToLower())
             {
@@ -363,7 +366,7 @@ namespace TeleSharp.Generator
                         {
                             Param p2 = new Param() { name = p.name, type = p.type.Split('?')[1] };
                             return $"if ((Flags & {GetBitMask(p.type).ToString()}) != 0)" + Environment.NewLine +
-                                WriteWriteCode(p2, true);
+                                GetSerializeCode(p2, true);
                         }
                     }
             }
@@ -373,7 +376,7 @@ namespace TeleSharp.Generator
             var deserialize = "";
             foreach (var p in parameters)
             {
-                deserialize += "            " + GetDeserializeCode(p) + Environment.NewLine;
+                deserialize += GetIndentationForLevel(3) + GetDeserializeCode(p) + Environment.NewLine;
             }
             return deserialize;
         }
@@ -426,6 +429,10 @@ namespace TeleSharp.Generator
             if (!Directory.Exists(directoryName) && directoryName != null)
                 Directory.CreateDirectory(directoryName);
             File.WriteAllText(filepath, contents);
+        }
+
+        public static string GetIndentationForLevel(int indentationLevel) {
+            return new string(' ', indentationLevel * 4);
         }
     }
 }
