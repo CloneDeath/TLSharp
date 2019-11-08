@@ -150,8 +150,8 @@ namespace TeleSharp.Generator
 
                 #region DeSerializeRespFunc
                 var deserializeResp = "";
-                Param p2 = new Param() {name = "Response", type = c.type};
-                deserializeResp += GetDeserializeCode(p2) + NewLine;
+                var p2 = new Param {name = "Response", type = c.type};
+                deserializeResp += GetIndentationForLevel(3) + GetDeserializeCode(p2) + NewLine;
                 temp = temp.Replace("/* DESERIALIZEResp */", deserializeResp);
                 #endregion
 
@@ -354,7 +354,7 @@ namespace TeleSharp.Generator
                 case "true":
                     return $"BoolUtil.Serialize({CheckForKeywordAndPascalCase(p.name)},bw);";
                 case "bytes":
-                    return $"BytesUtil.Serialize({CheckForKeywordAndPascalCase(p.name)},bw);";
+                    return $"BytesUtil.Serialize({CheckForKeywordAndPascalCase(p.name)}, bw);";
                 case "double":
                     return flag ? $"bw.Write({CheckForKeywordAndPascalCase(p.name)}.Value);" : $"bw.Write({CheckForKeywordAndPascalCase(p.name)});";
                 default:
